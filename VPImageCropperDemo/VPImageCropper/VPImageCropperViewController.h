@@ -8,6 +8,11 @@
 
 #import <UIKit/UIKit.h>
 
+typedef NS_ENUM(NSUInteger, VPImageCropperCropShape) {
+    VPImageCropperCropShapeSquare,
+    VPImageCropperCropShapeCircle
+};
+
 @class VPImageCropperViewController;
 
 @protocol VPImageCropperDelegate <NSObject>
@@ -21,7 +26,10 @@
 
 @property (nonatomic, assign) NSInteger tag;
 @property (nonatomic, assign) id<VPImageCropperDelegate> delegate;
+
 @property (nonatomic, assign) CGRect cropFrame;
+@property (nonatomic, assign) BOOL showCropFrame; //default = YES
+@property (nonatomic, assign) VPImageCropperCropShape cropShape; //default = Square
 
 - (id)initWithImage:(UIImage *)originalImage cropFrame:(CGRect)cropFrame limitScaleRatio:(NSInteger)limitRatio;
 

@@ -42,6 +42,8 @@
     self = [super init];
     if (self) {
         self.cropFrame = cropFrame;
+        self.showCropFrame = YES;
+        self.cropShape = VPImageCropperCropShapeSquare;
         self.limitRatio = limitRatio;
         self.originalImage = [self fixOrientation:originalImage];
     }
@@ -84,17 +86,17 @@
     [self.view addSubview:self.showImgView];
     
     self.overlayView = [[UIView alloc] initWithFrame:self.view.bounds];
-    self.overlayView.alpha = .5f;
-    self.overlayView.backgroundColor = [UIColor blackColor];
     self.overlayView.userInteractionEnabled = NO;
     self.overlayView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     [self.view addSubview:self.overlayView];
     
-    self.ratioView = [[UIView alloc] initWithFrame:self.cropFrame];
-    self.ratioView.layer.borderColor = [UIColor yellowColor].CGColor;
-    self.ratioView.layer.borderWidth = 1.0f;
-    self.ratioView.autoresizingMask = UIViewAutoresizingNone;
-    [self.view addSubview:self.ratioView];
+    if (self.showCropFrame) {
+        self.ratioView = [[UIView alloc] initWithFrame:self.cropFrame];
+        self.ratioView.layer.borderColor = [UIColor yellowColor].CGColor;
+        self.ratioView.layer.borderWidth = 1.0f;
+        self.ratioView.autoresizingMask = UIViewAutoresizingNone;
+        [self.view addSubview:self.ratioView];
+    }
     
     [self overlayClipping];
 }
@@ -140,30 +142,29 @@
 
 - (void)overlayClipping
 {
-    CAShapeLayer *maskLayer = [[CAShapeLayer alloc] init];
-    CGMutablePathRef path = CGPathCreateMutable();
-    // Left side of the ratio view
-    CGPathAddRect(path, nil, CGRectMake(0, 0,
-                                        self.ratioView.frame.origin.x,
-                                        self.overlayView.frame.size.height));
-    // Right side of the ratio view
-    CGPathAddRect(path, nil, CGRectMake(
-                                        self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
-                                        0,
-                                        self.overlayView.frame.size.width - self.ratioView.frame.origin.x - self.ratioView.frame.size.width,
-                                        self.overlayView.frame.size.height));
-    // Top side of the ratio view
-    CGPathAddRect(path, nil, CGRectMake(0, 0,
-                                        self.overlayView.frame.size.width,
-                                        self.ratioView.frame.origin.y));
-    // Bottom side of the ratio view
-    CGPathAddRect(path, nil, CGRectMake(0,
-                                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height,
-                                        self.overlayView.frame.size.width,
-                                        self.overlayView.frame.size.height - self.ratioView.frame.origin.y + self.ratioView.frame.size.height));
-    maskLayer.path = path;
-    self.overlayView.layer.mask = maskLayer;
-    CGPathRelease(path);
+    UIBezierPath *path = [UIBezierPath bezierPathWithRect:self.overlayView.frame];
+    
+    UIBezierPath *shapePath;
+    switch (self.cropShape) {
+        case VPImageCropperCropShapeSquare:
+            shapePath = [UIBezierPath bezierPathWithRect:self.cropFrame];
+            break;
+            
+        case VPImageCropperCropShapeCircle:
+            shapePath = [UIBezierPath bezierPathWithOvalInRect:self.cropFrame];
+            break;
+    }
+    
+    [path appendPath:shapePath];
+    [path setUsesEvenOddFillRule:YES];
+
+    CAShapeLayer *fillLayer = [CAShapeLayer layer];
+    fillLayer.path = path.CGPath;
+    fillLayer.fillRule = kCAFillRuleEvenOdd;
+    fillLayer.fillColor = [UIColor blackColor].CGColor;
+    fillLayer.opacity = 0.5;
+
+    [self.overlayView.layer addSublayer:fillLayer];
 }
 
 // register all gestures
